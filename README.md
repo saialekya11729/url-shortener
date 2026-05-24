@@ -103,20 +103,20 @@ Response:
 
 Create and activate a virtual environment:
 
-```powershell
+```
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
 Install dependencies:
 
-```powershell
+```
 pip install -r requirements.txt
 ```
 
 Run the API:
 
-```powershell
+```
 uvicorn app.main:app --reload
 ```
 
@@ -131,3 +131,60 @@ Run tests:
 ```powershell
 pytest
 ```
+
+## Test Coverage
+
+The default test suite includes 45 Pytest tests covering:
+
+- URL creation and validation
+- 24-hour expiry behavior
+- redirect behavior and click tracking
+- not-found and expired-link error handling
+- service-layer collision handling
+- UTC response serialization
+- short-code generation
+- web UI and health routes
+
+Run it with:
+
+```
+pytest
+```
+
+## Load Testing
+
+The repo includes an explicit high-concurrency load-test runner at:
+
+```text
+load_tests/url_shortener_load_test.py
+```
+
+Latest recorded result:
+
+```text
+1,000 requests, 1,000 concurrency, 1,000 successes, 0 failures
+```
+
+See `docs/load-test-results.md` for the command output.
+
+Run the default in-process ASGI load test:
+
+```
+python load_tests/url_shortener_load_test.py --requests 1000 --concurrency 1000
+```
+
+This drives the real FastAPI routes without depending on local socket or server-process behavior.
+
+To test a running server, start the API:
+
+```
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+You can also stress concurrent writes explicitly:
+
+```
+python load_tests/url_shortener_load_test.py --scenario create --requests 1000 --concurrency 1000 --timeout 120
+```
+
+
