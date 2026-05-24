@@ -183,7 +183,7 @@ To test a running server, start the API:
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-You can also stress concurrent writes explicitly:
+Stress test concurrent writes explicitly:
 
 ```
 python load_tests/url_shortener_load_test.py --scenario create --requests 1000 --concurrency 1000 --timeout 120
