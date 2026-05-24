@@ -134,13 +134,14 @@ pytest
 
 ## Test Coverage
 
-The default test suite includes 45 Pytest tests covering:
+The default test suite includes 49 Pytest unit/integration tests covering:
 
 - URL creation and validation
 - 24-hour expiry behavior
 - redirect behavior and click tracking
 - not-found and expired-link error handling
 - service-layer collision handling
+- database engine configuration
 - UTC response serialization
 - short-code generation
 - web UI and health routes
@@ -162,7 +163,8 @@ load_tests/url_shortener_load_test.py
 Latest recorded result:
 
 ```text
-1,000 requests, 1,000 concurrency, 1,000 successes, 0 failures
+Read scenario:  1,000 requests, 1,000 concurrency, 1,000 successes, 0 failures
+Write scenario: 1,000 create requests, 1,000 concurrency, 1,000 successes, 0 failures
 ```
 
 See `docs/load-test-results.md` for the command output.
@@ -187,4 +189,33 @@ You can also stress concurrent writes explicitly:
 python load_tests/url_shortener_load_test.py --scenario create --requests 1000 --concurrency 1000 --timeout 120
 ```
 
+SQLite is the default no-setup database for local development, but it is not designed for 1,000 simultaneous writes. For the 1,000-concurrent write scenario, use a server database such as SQL Server or PostgreSQL.
+
+### Non-Docker SQL Server Write Test
+
+If SQL Server is installed locally, create the database:
+
+```powershell
+sqlcmd -S localhost -E -C -Q "IF DB_ID('url_shortener') IS NULL CREATE DATABASE url_shortener;"
+```
+
+Run the write-heavy load test:
+
+```powershell
+$env:DATABASE_URL="mssql+pyodbc://@localhost/url_shortener?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes&TrustServerCertificate=yes"
+$env:DB_POOL_SIZE="100"
+$env:DB_MAX_OVERFLOW="200"
+python load_tests/url_shortener_load_test.py --scenario create --requests 1000 --concurrency 1000 --timeout 120
+```
+
+Latest local SQL Server write result:
+
+```text
+scenario: create
+transport: asgi
+requests: 1000
+successes: 1000
+failures: 0
+concurrency: 1000
+```
 
