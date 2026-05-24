@@ -18,7 +18,16 @@ app/
   utils/
     code_generator.py      Random short-code generation
 tests/
-  test_urls.py             API behavior tests
+  conftest.py              Shared test database and FastAPI client fixtures
+  test_api_urls.py         REST API, redirect, expiry, and UI route tests
+  test_code_generator.py   Short-code generation tests
+  test_database.py         Database engine configuration tests
+  test_schemas.py          Response serialization tests
+  test_url_service.py      Service-layer creation, lookup, cache, and redirect tests
+load_tests/
+  url_shortener_load_test.py  Async 1,000+ concurrency load-test harness
+docs/
+  load-test-results.md     Recorded read/write load-test results
 ```
 
 ## Data Model
