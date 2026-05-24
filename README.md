@@ -2,13 +2,6 @@
 
 Anonymous URL shortener built with a Python REST API.
 
-## MVP Decisions
-
-- No login or user accounts.
-- Users cannot choose custom short codes.
-- Every short URL expires after 24 hours.
-- Expired URLs are kept in the database and return `410 Gone`.
-- Successful redirects increment `click_count`.
 
 ## Low-Level Design
 
