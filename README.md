@@ -2,13 +2,6 @@
 
 Anonymous URL shortener built with a Python REST API.
 
-## MVP Decisions
-
-- No login or user accounts.
-- Users cannot choose custom short codes.
-- Every short URL expires after 24 hours.
-- Expired URLs are kept in the database and return `410 Gone`.
-- Successful redirects increment `click_count`.
 
 ## Low-Level Design
 
@@ -25,7 +18,16 @@ app/
   utils/
     code_generator.py      Random short-code generation
 tests/
-  test_urls.py             API behavior tests
+  conftest.py              Shared test database and FastAPI client fixtures
+  test_api_urls.py         REST API, redirect, expiry, and UI route tests
+  test_code_generator.py   Short-code generation tests
+  test_database.py         Database engine configuration tests
+  test_schemas.py          Response serialization tests
+  test_url_service.py      Service-layer creation, lookup, cache, and redirect tests
+load_tests/
+  url_shortener_load_test.py  Async 1,000+ concurrency load-test harness
+docs/
+  load-test-results.md     Recorded read/write load-test results
 ```
 
 ## Data Model
@@ -110,20 +112,20 @@ Response:
 
 Create and activate a virtual environment:
 
-```powershell
+```
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
 Install dependencies:
 
-```powershell
+```
 pip install -r requirements.txt
 ```
 
 Run the API:
 
-```powershell
+```
 uvicorn app.main:app --reload
 ```
 
@@ -138,3 +140,91 @@ Run tests:
 ```powershell
 pytest
 ```
+
+## Test Coverage
+
+The default test suite includes 49 Pytest unit/integration tests covering:
+
+- URL creation and validation
+- 24-hour expiry behavior
+- redirect behavior and click tracking
+- not-found and expired-link error handling
+- service-layer collision handling
+- database engine configuration
+- UTC response serialization
+- short-code generation
+- web UI and health routes
+
+Run it with:
+
+```
+pytest
+```
+
+## Load Testing
+
+The repo includes an explicit high-concurrency load-test runner at:
+
+```text
+load_tests/url_shortener_load_test.py
+```
+
+Latest recorded result:
+
+```text
+Read scenario:  1,000 requests, 1,000 concurrency, 1,000 successes, 0 failures
+Write scenario: 1,000 create requests, 1,000 concurrency, 1,000 successes, 0 failures
+```
+
+See `docs/load-test-results.md` for the command output.
+
+Run the default in-process ASGI load test:
+
+```
+python load_tests/url_shortener_load_test.py --requests 1000 --concurrency 1000
+```
+
+This drives the real FastAPI routes without depending on local socket or server-process behavior.
+
+To test a running server, start the API:
+
+```
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Stress test concurrent writes explicitly:
+
+```
+python load_tests/url_shortener_load_test.py --scenario create --requests 1000 --concurrency 1000 --timeout 120
+```
+
+SQLite is the default no-setup database for local development, but it is not designed for 1,000 simultaneous writes. For the 1,000-concurrent write scenario, use a server database such as SQL Server or PostgreSQL.
+
+### Non-Docker SQL Server Write Test
+
+If SQL Server is installed locally, create the database:
+
+```powershell
+sqlcmd -S localhost -E -C -Q "IF DB_ID('url_shortener') IS NULL CREATE DATABASE url_shortener;"
+```
+
+Run the write-heavy load test:
+
+```powershell
+$env:DATABASE_URL="mssql+pyodbc://@localhost/url_shortener?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes&TrustServerCertificate=yes"
+$env:DB_POOL_SIZE="100"
+$env:DB_MAX_OVERFLOW="200"
+python load_tests/url_shortener_load_test.py --scenario create --requests 1000 --concurrency 1000 --timeout 120
+```
+
+Latest local SQL Server write result:
+
+```text
+scenario: create
+transport: asgi
+requests: 1000
+successes: 1000
+failures: 0
+concurrency: 1000
+```
+
